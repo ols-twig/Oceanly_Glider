@@ -6,7 +6,7 @@ Created on Mon Jan  6 12:04:02 2025
 """
 # this asks for the directory with a binary and cache folders, sensorlist.txt and deploymentyaml"
 # then it asks which dbd file you want to process and spits out all the graphs from that yo
-#%%
+#%% Choose working library - (and setup+definitions)
 ### Choose working library - (and setup+definitions)
 def checkCACfiles(binarydir, cacdir):
     print("Checking CACHE files...")
@@ -142,7 +142,7 @@ if not os.path.exists(graphs):
 else:
         print('Graphs folder exists')
 
-#%%
+#%% Plotting individual dives
 # Plotting individual dives
 # similar to this G:\.shortcut-targets-by-id\1Z7PX__ZLrJ6oL2wHtDtiATh5eAh4Cgg3\Oceanly Science\Instrumentation\Ocean glider\Deployment Tools\example figs and html\betty-2019-263-1-0
 # Choosing the file to plot up
@@ -176,7 +176,7 @@ if not os.path.exists(graphs+divename):
 else:
         print('dive graph folder exists')
         
-#%%
+#%% Graphing
 #ADD META TABLE TO PRINT
 if not skipscience:
     scisens = list(divsds.keys())
