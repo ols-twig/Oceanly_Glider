@@ -66,6 +66,39 @@ def processGliderlats(lats):
             lat_dd.append(sign * (degrees + minutes / 60))
     return lat_dd
 
+def average_science(divsds, bin_size = 1):
+    depth_var = divsds['sci_rbrctd_depth_00']
+    depth_min = depth_var.min().item()
+    depth_max = depth_var.max().item()
+    print(f"Depth range: {depth_min:.2f} to {depth_max:.2f} meters")
+    bin_size = bin_size  # 1-meter bins
+    depth_bins = np.arange(np.floor(depth_min), np.ceil(depth_max) + bin_size, bin_size)
+    depth_bin_centers = (depth_bins[:-1] + depth_bins[1:]) / 2
+    print(f'Number of bins: {len(depth_bins)}')
+    
+    bsds = divsds.groupby_bins(group= divsds['sci_rbrctd_depth_00'], 
+                                       bins = depth_bins, 
+                                       labels = depth_bin_centers, 
+                                          ).mean()
+    bsds = bsds.rename_dims({'sci_rbrctd_depth_00_bins': 'depth_bins'})
+    bsds = bsds.rename_vars({'sci_rbrctd_depth_00_bins': 'depth_bins'})
+    
+    return bsds
+def rndup(n, base = 50):
+    return n + (base - n) % base
+
+def rnddown(n, base = 50):
+    return int(n // base)*base
+
+def autorange(series, increment):
+    return rnddown(series.min(), increment),rndup(series.max(), increment)
+
+def autorange_percentiles(series):
+    return (np.percentile(series, 5), np.percentile(series, 95))
+
+def autominmax(series):
+    return (np.nanmin(series), np.nanmax(series))
+
 #TODO be able to switch between the e/d(big) and s/t(small) bd files 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -162,6 +195,7 @@ try:
     divsds = divsds.set_coords('time')
     divsds = divsds.swap_dims({'_ind': 'time'})
     divsds['time'] = pd.to_datetime(divsds.time.values, unit='s')
+    bsds = average_science(divsds, bin_size= 1)
     skipscience = False
 except:
     print(f'SKIPPING {divename} - cannot open or find EBD')
@@ -524,26 +558,118 @@ plt.savefig(divegraphdir+thistitle+'.png', format='png')
 
 ### Time - COND - TEMP _Press
 if not skipscience:
-    fig, ax1 = plt.subplots(figsize=(8, 4))
+    y_depth = bsds.depth_bins.values
+    x_temp = bsds.sci_rbrctd_temperature_00.values
+    x_sal = bsds.sci_rbrctd_salinity_00
+    x_oxy = bsds.sci_oxy4_oxygen
+
+
+    fig = plt.figure(figsize = (8,10)) #, {siteproj}
+    ax_full = fig.subplots()
+                     
+    ax_full.invert_yaxis()
+    #ax_full.set_ylim(rndup(df.depSM.max(),10),0)
+
+    full = ax_full.plot(x_temp, y_depth, color='black', label='Temp')
+    ax_full.spines['bottom'].set_color('black')
+    ax_full.tick_params(axis='x', colors='black')
+    ax_full.xaxis.label.set_color('black')
+    ax_full.set_xlim(autorange(x_temp, 0.1))#-2, -1)
+    ax_full.set_xlabel('Temperature [°C]', labelpad = 0.1)
+    ax_full.set_ylabel('Depth [m]', labelpad = 0.1)
+        
+    ax_sal = ax_full.twiny()
+    sal = ax_sal.plot(x_sal, y_depth, color='firebrick', label='Sal')
+    ax_sal.xaxis.set_ticks_position('bottom')
+    ax_sal.xaxis.set_label_position('bottom')
+    ax_sal.spines['bottom'].set_position(('axes', -0.055))
+    ax_sal.spines['bottom'].set_color('firebrick')
+    ax_sal.tick_params(axis='x', colors='firebrick')
+    ax_sal.xaxis.label.set_color('firebrick')
+    ax_sal.set_xlim(autorange(x_sal,0.02))
+    ax_sal.set_xlabel('Salinity [PSU]', labelpad = 0.1)
+
+    ax_oxy = ax_full.twiny()
+    oxy = ax_oxy.plot(x_oxy, y_depth, color='blue', label='Oxy')
+    ax_oxy.xaxis.set_ticks_position('bottom')
+    ax_oxy.xaxis.set_label_position('bottom')
+    ax_oxy.spines['bottom'].set_position(('axes', -0.11))
+    ax_oxy.spines['bottom'].set_color('blue')
+    ax_oxy.tick_params(axis='x', colors='blue')
+    ax_oxy.xaxis.label.set_color('blue')
+    ax_oxy.set_xlim(autorange(x_oxy, 5))
+    ax_oxy.set_xlabel('Oxygen [µmol/L]', labelpad = 0.1)
     
-    ax1.plot(divsds.time.values, divsds.sci_rbrctd_conductivity_00.values, 
-             label='sci_rbrctd_conductivity_00',
-             lw=1, marker='o', markersize=3)
-    ax1.plot(divsds.time.values, divsds.sci_rbrctd_temperature_00.values, 
-             label='sci_rbrctd_temperature_00',
-             lw=1, marker='o', markersize=3)
-    ax1.plot(divsds.time.values, divsds.sci_rbrctd_pressure_00.values, 
-             label='sci_rbrctd_pressure_00',
-             lw=1, marker='o', markersize=3)
-    ax1.invert_yaxis()
-    ax1.set_ylabel('Depth (m)')
-    ax1.grid(axis = 'both')
-    
-    plt.legend()
-    plt.suptitle(f'Time - COND - TEMP - PRES for dive: {divename}', fontweight="bold")
+    fig.suptitle(f'TEMP - SAL - OXY for dive: {divename}',fontweight="bold")
     plt.title(f'{fullfn}', fontsize = 8)
+
+    lines = full + sal + oxy# + deoxy
+    labels = [l.get_label() for l in lines]
+    #ax_full.legend(lines, labels, loc = 'lower right')
+    ax_full.grid(linestyle = '--')
+    plt.tight_layout()
     
     thistitle = f'n_SCIENCE_{divename}'
+    plt.savefig(divegraphdir+thistitle+'.png', format='png')
+    
+## Optical science
+    y_depth = bsds.depth_bins.values
+    x_fluoro = bsds.sci_flbbcd_bb_units.values#.interpolate(method = 'polynomial', order = 1)
+    x_turb = bsds.sci_flbbcd_chlor_units.values
+    x_PAR = bsds.sci_satpar_par
+    
+    #fig = plt.figure(figsize = (10,10))
+    fig = plt.figure(figsize = (8,10))
+    ax_fluoro = fig.subplots()
+    
+    ax_fluoro.invert_yaxis()
+    ax_fluoro.set_ylim(rndup(y_depth.max(),10),0)
+    
+    fluoro = ax_fluoro.plot(x_fluoro, y_depth, color='green', label='Fluorometry')
+    # ax_fluoro.xaxis.set_ticks_position('bottom')
+    # ax_fluoro.xaxis.set_label_position('bottom')
+    #ax_fluoro.spines['bottom'].set_position(('axes', 0.1))
+    ax_fluoro.spines['bottom'].set_color('green')
+    ax_fluoro.tick_params(axis='x', colors='green')
+    ax_fluoro.xaxis.label.set_color('green')
+    ax_fluoro.set_xlim(autominmax(x_fluoro))
+    ax_fluoro.set_xlabel('Chlorophyll [ug/l]?', labelpad = 0.1)
+    
+    ax_fluoro.set_ylabel('Depth [m]', labelpad = 0.1)
+    
+    ax_turb = ax_fluoro.twiny()
+    turb = ax_turb.plot(x_turb, y_depth, color='rosybrown', label='Backscatter')
+    ax_turb.xaxis.set_ticks_position('bottom')
+    ax_turb.xaxis.set_label_position('bottom')
+    ax_turb.spines['bottom'].set_position(('axes', -0.055))
+    ax_turb.spines['bottom'].set_color('rosybrown')
+    ax_turb.tick_params(axis='x', colors='rosybrown')
+    ax_turb.xaxis.label.set_color('rosybrown')
+    ax_turb.set_xlim(autominmax(x_turb))
+    ax_turb.set_xlabel('Backsactter (nodim)', labelpad = 0.1)
+    
+    ax_PAR = ax_fluoro.twiny()
+    PAR = ax_PAR.plot(x_PAR, y_depth, color='magenta', label='PAR')
+    ax_PAR.xaxis.set_ticks_position('bottom')
+    ax_PAR.xaxis.set_label_position('bottom')
+    ax_PAR.spines['bottom'].set_position(('axes', -0.11))
+    ax_PAR.spines['bottom'].set_color('magenta')
+    ax_PAR.tick_params(axis='x', colors='magenta')
+    ax_PAR.xaxis.label.set_color('magenta')
+    ax_PAR.set_xlabel(r'PAR [µEm$^{-2}$s$^{-1}$]', labelpad = 0.1)
+    
+    fig.suptitle(f'CHLOR - BACKSCATTER - PAR for dive: {divename}',fontweight="bold")
+    plt.title(f'{fullfn}', fontsize = 8)
+    
+    lines = fluoro + turb + PAR# + deoxy
+    #labels = [l.get_label() for l in lines]
+    #ax_full.legend(lines, labels, loc = 'lower right')
+    ax_fluoro.grid(linestyle = '--')
+    
+    #fig.title(f'Ship Station {stnnum}')
+    plt.tight_layout()
+    
+    thistitle = f'o_SCIENCE_{divename}'
     plt.savefig(divegraphdir+thistitle+'.png', format='png')
 
 ### This makes the HTML 
