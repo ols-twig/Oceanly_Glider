@@ -212,11 +212,18 @@ else:
         
 #%% Graphing
 #ADD META TABLE TO PRINT
+nsd = 'No Science Data'
 if not skipscience:
     scisens = list(divsds.keys())
     scipoints = len(divsds.time)
+    if (bsds.depth_bins >= 6).any():
+        print('y')
+        scisal_at5 = bsds.sci_rbrctd_salinity_00.isel(depth_bins=6).item()
+        scitem_at5 = bsds.sci_rbrctd_temperature_00.isel(depth_bins=6).item()
+    else: 
+        scisal_at5 = 0; scitem_at5 = 0
 else:
-    scisens = 'No Science Data'
+    scisens = nsd; scipoints = nsd; scisal_at5 = nsd; scitem_at5 = nsd
 mdep = f'{np.nanmax(divfds.m_depth.values):.2f}m'
 divemet= {
     'First Timestamp': str(pd.to_datetime(divfds.time.values[0])).split('.')[0], 
@@ -231,7 +238,8 @@ divemet= {
     'Average climb rate': f'{(np.nanmean(divfds.m_avg_climb_rate.values)):.3f} m/s',
     'Average downward inflection time':	f'{(np.nanmean(divfds.m_avg_downward_inflection_time.values)).astype(int)}s',
     'Science sensors': scisens,
-    'Total science data points': scipoints
+    'Total science data points': scipoints,
+    'Surface data at 5m': f'Temp: {float(scitem_at5):.2f}, Sal: {float(scisal_at5):.2f}'
     }
 plt.ioff() #turns off plotting
 #plt.ion()
