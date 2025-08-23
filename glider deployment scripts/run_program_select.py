@@ -163,11 +163,11 @@ glidersuffix = 'dbd'  # 'sbd'
 graphs = './graphs/'
 
 
-checkCACfiles(binarydir, cacdir)
+# checkCACfiles(binarydir, cacdir)
 
-slocum.binary_to_rawnc(
-    binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
-    incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
+# slocum.binary_to_rawnc(
+#     binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
+#     incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
 
 if not os.path.exists(graphs):
         os.makedirs(graphs)
@@ -191,16 +191,18 @@ divfds = divfds.swap_dims({'_ind': 'time'})
 divfds['time'] = pd.to_datetime(divfds.time.values, unit='s')
 
 try:
-    divsds = xr.open_dataset(divsd)
+    divsds = xr.open_dataset(rf"{divsd}")
     divsds = divsds.set_coords('time')
     divsds = divsds.swap_dims({'_ind': 'time'})
     divsds['time'] = pd.to_datetime(divsds.time.values, unit='s')
     bsds = average_science(divsds, bin_size= 1)
     skipscience = False
+    print(f'WORKING {divename}')
 except:
     print(f'SKIPPING {divename} - cannot open or find EBD')
     skipscience = True
-
+    
+#%%
 fullfn = divfds.attrs['full_filename']
 print(f'Dive chosen: {divename}')
 divegraphdir = graphs+divename+'/'
@@ -210,14 +212,14 @@ if not os.path.exists(graphs+divename):
 else:
         print('dive graph folder exists')
         
-#%% Graphing
+#% Graphing
 #ADD META TABLE TO PRINT
 nsd = 'No Science Data'
 if not skipscience:
     scisens = list(divsds.keys())
     scipoints = len(divsds.time)
     if (bsds.depth_bins >= 6).any():
-        print('y')
+        print('Plotting Science')
         scisal_at5 = bsds.sci_rbrctd_salinity_00.isel(depth_bins=6).item()
         scitem_at5 = bsds.sci_rbrctd_temperature_00.isel(depth_bins=6).item()
     else: 
@@ -682,6 +684,7 @@ if not skipscience:
 
 ### This makes the HTML 
 import os
+import webbrowser
 
 def generate_html_for_graphs(folder_path, output_html, 
                              page_title=f'{divename} - {mdep}', table_data=None):
@@ -767,6 +770,8 @@ def generate_html_for_graphs(folder_path, output_html,
         f.write(html_content)
 
     print(f"HTML file created: {output_html}")
+    print(f'Opening: {divename}')
+    webbrowser.open(maindir+output_file)
 
 # Example usage
 graphs_folder = divegraphdir  # Folder containing graph images

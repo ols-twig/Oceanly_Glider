@@ -1,0 +1,122 @@
+# Always include this!
+m_present_time
+m_present_time_fixed
+m_present_time_sci
+u_max_clothesline_lag_for_consci
+
+# Tells us if the glider thinks it's at the surface
+m_appear_to_be_at_surface
+
+# Steering parameters
+m_fin
+c_fin
+m_pitch
+c_pitch
+m_roll
+c_roll
+m_heading
+c_heading
+
+# Glider health
+m_coulomb_amphr
+m_battery
+m_vacuum
+c_vacuum
+m_battpos
+c_battpos
+
+# Iridium parameters
+m_iridium_call_num
+m_iridium_signal_strength
+m_iridium_redials
+
+# Depth parameters
+m_depth
+m_pressure
+m_altitude
+m_water_depth
+m_raw_altitude
+
+# Added params
+m_present_time
+m_num_half_yos_in_segment
+m_avg_yo_time
+m_avg_speed
+m_avg_dive_rate
+m_avg_climb_rate
+m_avg_downward_inflection_time
+m_ballast_pumped
+c_ballast_pumped
+m_de_oil_vol
+c_de_oil_vol
+m_digifin_leakdetect_reading
+m_leakdetect_voltage_forward
+m_leakdetect_voltage
+m_air_pump
+m_air_fill
+
+# Depth-averaged currents
+m_final_water_vx
+m_final_water_vy
+m_water_vx
+m_water_vy
+
+# GPS sensors
+c_wpt_lat
+c_wpt_lon
+m_gps_lat
+m_gps_lon
+m_lat
+m_lon
+m_gps_status
+m_gps_full_status
+
+# Science sensors
+sci_ctd41cp_timestamp
+sci_m_present_time
+m_science_clothesline_lag
+
+# CTD sensors
+sci_water_pressure
+sci_water_cond
+sci_water_temp
+
+sci_oxy4_oxygen
+sci_oxy4_saturation
+sci_oxy4_temp
+sci_oxy4_timestamp
+
+sci_flbbcd_bb_units
+sci_flbbcd_chlor_units
+sci_flbbcd_cdom_units
+sci_flbbcd_therm
+sci_flbbcd_timestamp
+
+# RBR Sensors
+sci_rbrctd_cond_cell_temp_00
+sci_rbrctd_conductivity_00
+#sci_rbrctd_count_00
+sci_rbrctd_depth_00
+#sci_rbrctd_is_installed
+sci_rbrctd_pressure_00
+sci_rbrctd_salinity_00
+sci_rbrctd_seapressure_00
+sci_rbrctd_temperature_00
+sci_rbrctd_timestamp
+
+# PAR Sensors
+#sci_satpar_is_installed bool
+sci_satpar_par
+#sci_satpar_raw_counts nodim
+#sci_satpar_timer sec
+sci_satpar_timestamp
+
+# DVL Sensors
+sci_dvl_wi_err_vel
+sci_dvl_wi_vel_good
+sci_dvl_wi_x_vel
+sci_dvl_wi_y_vel
+sci_dvl_wi_z_vel
+
+# GliderDOS version
+x_software_ver
