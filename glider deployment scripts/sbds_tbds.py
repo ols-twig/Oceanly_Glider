@@ -22,7 +22,7 @@ def checkCACfiles(binarydir, cacdir):
                     if line.startswith(b'sensor_list_crc'):
                         # print(f"Match found: {line}")
                         cacfile = str(line).split(':')[1].strip()[:8]
-                        print(file, cacfile)
+                        # print(file, cacfile)
                         if cacfile in caclst:
                             continue
                         else:
@@ -98,7 +98,7 @@ def autorange_percentiles(series):
 
 def autominmax(series):
     return (np.nanmin(series), np.nanmax(series))
-
+#%%
 #TODO be able to switch between the e/d(big) and s/t(small) bd files 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -138,28 +138,29 @@ def select_file():
     file_path = filedialog.askopenfilename(title='Select dive to plot:', #askopenfilename
                             initialdir=rawdir, 
                             filetypes=[('Flight data', '*.dbd.nc'),
+                                        ('inFlight data', '*.sbd.nc'),
                                        ('All NetCDFs', '*.nc'),
                                        ('All Files', '*.*')],
                             parent=root)
 
     root.destroy()  # Destroy the root window
     return file_path
-
+#%%
 maindir = select_directory()
 # binfile = askopenfilename(title = "Choose the binary file")
 os.chdir(maindir)
 logging.basicConfig(level='INFO')
 
-binarydir = './raw_dbd_ebd/'
+binarydir = './raw_sbd_tbd/'
 rawdir = './rawnc/'
 cacdir = './cac/'
-sensorlist = './unit_1104_sensors.txt'
+sensorlist = './selkie_sensors.txt'
 deploymentyaml = './deploymentRealtime.yml'
 #l1tsdir = './L0-timeseries/'
 #profiledir = './L0-profiles/'
 #griddir = './L0-gridfiles/'
-scisuffix = 'ebd'  # 'tbd'
-glidersuffix = 'dbd'  # 'sbd'
+scisuffix = 'tbd'  # 'tbd'
+glidersuffix = 'sbd'  # 'sbd'
 graphs = './graphs/'
 
 
@@ -174,6 +175,113 @@ if not os.path.exists(graphs):
         print('CREATED graph folder')
 else:
         print('Graphs folder exists')
+
+
+#%%
+
+import os
+import pyglider.ncprocess as ncprocess
+import pyglider.slocum as slocum
+import pyglider.utils as pgutils
+
+binarydir = './raw_sbd_tbd/'
+rawdir = './rawnc/'
+cacdir = './cac/'
+sensorlist = './selkie_sensors.txt'
+deploymentyaml = './deploymentRealtime.yml'
+l1tsdir = './L0-timeseries/'
+profiledir = './L0-profiles/'
+griddir = './L0-gridfiles/'
+scisuffix = 'tbd'  # 'tbd'
+glidersuffix = 'sbd'  # 'sbd'
+graphs = './graphs/'
+
+#%%
+do_direct = True
+# only do this for a real run, or something like this
+real = False
+if real:
+    os.system('rsync -av cproof@sfmc.webbresearch.com:/var/opt/sfmc-dockserver/' +
+              'stations/dfo/gliders/ ~/gliderdata/slocum_dockserver/')
+    os.system('rsync -av ~/gliderdata/slocum_dockserver/rosie_713/from-glider/* ' +
+              binarydir)
+
+    os.system('rm ' + rawdir + 'dfo* ' + rawdir + 'TEMP*.nc ' + l1tsdir + '* ' +
+              profiledir + '* ' + griddir + '* ')
+#%%
+do_direct = True
+if do_direct:
+    # turn *.sdb and *.tbd into timeseries netcdf files
+    outname = slocum.binary_to_timeseries(
+        binarydir, cacdir, l1tsdir, deploymentyaml, search='*.[s|t]bd',
+        profile_filt_time=20, profile_min_time=20)
+else:
+    # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
+    slocum.binary_to_rawnc(
+        binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
+        incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
+
+    # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
+    slocum.merge_rawnc(
+        rawdir, rawdir, deploymentyaml,
+        scisuffix=scisuffix, glidersuffix=glidersuffix)
+
+    # Make level-1 timeseries netcdf file from th raw files...
+    outname = slocum.raw_to_timeseries(
+        rawdir, l1tsdir, deploymentyaml,
+        profile_filt_time=100, profile_min_time=300)
+#%%
+if True:
+    # make profile netcdf files for ioos gdac...
+    ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
+
+# make grid of dataset....
+
+outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
+pgutils.example_gridplot(outname2, './gridplot2.png',ylim=[200, 0],
+                         toplot=['potential_temperature', 'salinity',
+                                 'oxygen_concentration', 'chlorophyll', 'cdom'])
+# 
+
+#%% battery queries
+import matplotlib.pyplot as plt
+import xarray as xr 
+import pandas as pd
+
+ds = xr.open_dataset(outname)
+#plt.scatter(ds.time, ds.battery)
+
+batab = ds.to_dataframe(['time'])
+#%%
+batab = batab[['battery']]
+
+batab = batab.resample('1h').mean()
+batab['change'] = batab['battery'].diff()
+
+
+plt.plot(batab['change'])
+plt.ylabel("delta/hr")
+plt.show()
+
+#%%
+fig, ax1 = plt.subplots(figsize=(8, 4))
+ax2 = ax1.twinx()
+ax1.plot(ds.time.values,ds.depth.values,label='m_depth',
+         lw=1)#, marker='o', markersize=1)
+ax2.plot(ds.time.values, ds.battery.values, label='battery',
+         c='r', lw=1, marker='o', markersize=3)
+
+ax1.set_ylabel('Depth')
+ax2.set_ylabel('Voltage')
+ax1.set_ylim()
+ax1.grid()
+
+plt.legend()
+
+
+
+
+
 
 #%% Plotting individual dives
 # Plotting individual dives
@@ -211,7 +319,7 @@ if not os.path.exists(graphs+divename):
         print(f'CREATED dive graph folder {divegraphdir}')
 else:
         print('dive graph folder exists')
-        
+       
 #% Graphing
 #ADD META TABLE TO PRINT
 nsd = 'No Science Data'
