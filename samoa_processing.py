@@ -134,8 +134,10 @@ pgutils.example_gridplot(outname2, './gridplot2.png', ylim=[200, 0],
                          toplot=['potential_temperature', 'salinity',
                                  'oxygen_concentration', 'chlorophyll', 'cdom'])
 
-
 #%%
+#FROM HERE BELOW IS ANOTHER METHOD I TRIED SPLITING EACH YOYO into files
+#Could come in handy if wanting to look at single profiles later
+#
 outdir = './rawnc/combd'
 #%% Using this to test if it worked 
 # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
