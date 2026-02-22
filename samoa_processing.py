@@ -15,7 +15,7 @@ import pyglider.utils as pgutils
 logging.basicConfig(level='INFO')
 
 binarydir = './raw_dbd_ebd/'
-rawdir = './rawnc_flat/'
+rawdir = './rawnc/'
 cacdir = './cac/'
 sensorlist = './selkie_sensors.txt'
 deploymentyaml = './deploymentRealtime.yml'
@@ -32,6 +32,7 @@ os.chdir(r'C:\temp\samoa_glider')
 do_direct = False
 # only do this for a real run, or something like this
 real = False
+#%%
 if real:
     os.system('rsync -av cproof@sfmc.webbresearch.com:/var/opt/sfmc-dockserver/' +
               'stations/dfo/gliders/ ~/gliderdata/slocum_dockserver/')
@@ -40,7 +41,7 @@ if real:
 
     os.system('rm ' + rawdir + 'dfo* ' + rawdir + 'TEMP*.nc ' + l1tsdir + '* ' +
               profiledir + '* ' + griddir + '* ')
-
+#%%
 if do_direct:
     # turn *.sdb and *.tbd into timeseries netcdf files
     outname = slocum.binary_to_timeseries(
